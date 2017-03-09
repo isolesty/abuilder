@@ -6,6 +6,7 @@ import sys
 
 ### global variables ###
 upload_list = []
+exec_cmds = []
 
 
 ### flags ###
@@ -44,12 +45,12 @@ def main():
     set_upload_repos(args.repos)
     set_howto_get_source(args.source, args.commit)
     set_build_env(args.arch)
+    set_build_cmds(args.other)
 
 
 def set_upload_repos(repos):
     if BEFORE_BUILD and not upload_list and repos:
-        for item in repos:
-            upload_list.append(item)
+        upload_list = repos
     else:
         print("Set upload repos failed.")
         sys.exit(1)
@@ -70,6 +71,17 @@ def set_howto_get_source(source, commit):
 
 def set_build_env(arch):
     pass
+
+
+def  set_build_cmds(cmds):
+    # parse all cmds to a list
+    if not cmds:
+        exec_cmds = cmds
+
+def do_cmds():
+    if not exec_cmds:
+        for item in exec_cmds:
+            os.system(item)
 
 
 if __name__ == '__main__':
