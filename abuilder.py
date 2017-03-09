@@ -12,6 +12,7 @@ upload_list = []
 BEFORE_BUILD = 0
 AFTER_BUILD = 0
 
+
 def main():
     parser = argparse.ArgumentParser(
         description='Build packages depend on params')
@@ -20,8 +21,18 @@ def main():
                         dest='repos', action='append',
                         help='repo(s) to be updated after this build')
 
+    # get the git source and commit id from command line
     parser.add_argument('-s', '--source', metavar='source', required=True,
                         dest='source', help='source code git address')
+    parser.add_argument('-c', '--commit', metavar='commit', required=True,
+                        dest='commit', help='commit to be builded')
+
+    # use the arch to determine the build environment
+    parser.add_argument('-a', '--arch', metavar='arch', required=True,
+                        dest='arch', help='arch of the build environment')
+
+    parser.add_argument('--other', metavar='other',
+                        dest='arch', help='arch of the build environment')
 
     args = parser.parse_args()
 
@@ -31,6 +42,8 @@ def main():
 
     # Use the collected arguments
     set_upload_repos(args.repos)
+    set_howto_get_source(args.source, args.commit)
+    set_build_env(args.arch)
 
 
 def set_upload_repos(repos):
@@ -38,7 +51,7 @@ def set_upload_repos(repos):
         for item in repos:
             upload_list.append(item)
     else:
-        print("Initial upload repos failed")
+        print("Set upload repos failed.")
         sys.exit(1)
 
 
@@ -51,6 +64,11 @@ def upload_debs():
         pass
 
 
-if __name__ == '__main__':
-    main()
+def set_howto_get_source(source, commit):
+    pass
 
+
+def set_build_env(arch):
+    pass
+
+    main()
