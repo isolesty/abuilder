@@ -31,8 +31,8 @@ def main():
     parser.add_argument('-a', '--arch', metavar='arch', required=True,
                         dest='arch', help='arch of the build environment')
 
-    parser.add_argument('--other', metavar='other',
-                        dest='arch', help='arch of the build environment')
+    parser.add_argument('-o', '--other', metavar='other', action='append',
+                        dest='other', help='other build commands')
 
     args = parser.parse_args()
 
@@ -71,4 +71,6 @@ def set_howto_get_source(source, commit):
 def set_build_env(arch):
     pass
 
+
+if __name__ == '__main__':
     main()
