@@ -22,11 +22,9 @@ def main():
                         dest='repos', action='append',
                         help='repo(s) to be updated after this build')
 
-    # get the git source and commit id from command line
-    parser.add_argument('-s', '--source', metavar='source', required=True,
-                        dest='source', help='source code git address')
-    parser.add_argument('-c', '--commit', metavar='commit', required=True,
-                        dest='commit', help='commit to be builded')
+    # which package and which version to be builded
+    parser.add_argument('-p', '--package', metavar='package', required=True,
+                        dest='package', help='')
 
     # use the arch to determine the build environment
     parser.add_argument('-a', '--arch', metavar='arch', required=True,
@@ -43,7 +41,7 @@ def main():
 
     # Use the collected arguments
     set_upload_repos(args.repos)
-    set_howto_get_source(args.source, args.commit)
+    set_howto_get_source(args.package)
     set_build_env(args.arch)
     set_build_cmds(args.other)
 
@@ -60,12 +58,13 @@ def upload_debs():
     # only upload packages after the build process
     if AFTER_BUILD and not upload_list:
         for item in upload_list:
-            os.system("dput -uf " + item + "../*.changes")
+            pass
+            # os.system("dput -uf " + item + "../*.changes")
     else:
         pass
 
 
-def set_howto_get_source(source, commit):
+def set_howto_get_source(package):
     pass
 
 
@@ -73,10 +72,11 @@ def set_build_env(arch):
     pass
 
 
-def  set_build_cmds(cmds):
+def set_build_cmds(cmds):
     # parse all cmds to a list
     if not cmds:
         exec_cmds = cmds
+
 
 def do_cmds():
     if not exec_cmds:
