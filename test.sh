@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# all path in this script shuould be complete path
+INITSCRIPT="initbuild"
+
 # TODO: use tmpfs to build
 #BUILD_PLACE="/dev/shm/build-"
 
@@ -24,11 +27,28 @@ BUILD_LIST=""
 
 init()
 {
+	# check the init script
+	# init script should create the local repo
+	if [[ -f ${INITSCRIPT} ]]; then
+		source ${INITSCRIPT}
+	else
+		echo "Missing init scripts. Exit."
+		exit 1
+	fi
+
 	mkdir -p ${RESULT_DIR}
 	mkdir -p ${RESULT_BACKUP_DIR}
 
 	mkdir -p ${BUILD_TMP_DIR}
 
+	# check the repo
+	if [[ ! -d ${REPOS} ]]; then
+		init_repo ${REPOS}
+	fi
+
+	# TODO: add init_pbuilder
+
+	# check the log file
 	if [[ ! -f ${REPOS}/${RECORD_LIST_FILE} ]]; then
 		touch ${REPOS}/${RECORD_LIST_FILE}
 	fi
@@ -56,9 +76,10 @@ clean()
 # get source from x86
 get_source_x86()
 {
+	echo "get source from x86: $1"
 	# create x86_list
 	if [[ ! -f ${X86_LIST} ]]; then
-		create_x86_list
+		create_x86_list ${X86_LIST}
 	fi
 
 	sudo apt -oDir::Etc::SourceList=${X86_LIST} update 
@@ -79,7 +100,7 @@ prepare_source()
 		
 		dsc_file=$(ls ./ | grep 'dsc')
 		if [[ x${dsc_file} == "x" ]]; then
-			# failed to get package source from mips64el repos
+			# failed to get package source from arch repos
 			# try x86 repo
 			get_source_x86 $1
 		fi
@@ -159,8 +180,17 @@ reprepro_include()
 {
 	cd $REPOS
 	reprepro includedsc unstable ${RESULT_DIR}/*.dsc
+	if [[ $? -ne 0 ]]; then
+		# try to includedsc with default parameters
+		# fix the *.dsc missing these fileds
+		reprepro -S utils -P optional includedsc unstable ${RESULT_DIR}/*.dsc
+	fi
 	reprepro includedeb unstable ${RESULT_DIR}/*.deb
 	cd - > /dev/null
+}
+
+backup_result()
+{
 	# RESULT_DIR has been changed in function prepare_build()
 	# clean old RESULT_DIR in RESULT_BACKUP_DIR
 	if [[ -d ${RESULT_BACKUP_DIR}/$1 ]]; then
@@ -174,6 +204,7 @@ rebuild()
 	prepare_build $1
 	run_pbuilder $1
 	reprepro_include $1
+	backup_result $1
 }
 
 check_all()
@@ -231,548 +262,6 @@ split_line()
 }
 
 
-create_x86_list()
-{
-	echo "deb-src [trusted=yes] http://pools.corp.deepin.com/deepin unstable main contrib non-free" > ${X86_LIST}
-}
-
-
-to_build_list()
-{
-	if [[ ! -f ${BUILD_LIST} ]]; then
-		echo "dogtag-pki failed
-hfst-ospell
-uthash
-opencv x86
-gvfs x86
-libvoikko
-ruby-ffi
-tcl8.5
-tk8.5
-labltk
-lablgl
-gtkgl2
-gtksourceview2
-lablgtk2
-camlp4
-ounit
-ocaml-re
-ocamlgraph
-cudf
-checkpolicy
-setools
-cunit
-libsepol x86
-libselinux x86
-libsemanage x86
-a52dec
-aalib
-accountsservice
-acl
-acpid
-acpi-support
-adduser
-adwaita-icon-theme
-aisleriot
-alabaster
-albatross-gtk-theme
-alien
-allegro4.4
-alsa-lib
-alsa-plugins
-alsa-utils
-alure
-anacron
-anjuta
-ann
-ant
-antlr
-apache2
-apparmor
-appconfig
-appstream-glib
-apr
-apr-util
-apt
-apt-file
-aptitude
-arduino
-argyll
-asciidoc
-aspcud
-aspell
-aspell-en
-astroid
-atk1.0
-atkmm1.6
-atril
-at-spi2-atk
-at-spi2-core
-attica-kf5
-attr
-auctex
-audacious
-audiofile
-audit
-autoconf
-autoconf2.13
-autoconf2.59
-autoconf2.64
-autoconf-archive
-autogen
-automake1.11
-automake-1.15
-automoc
-autopkgtest
-autotools-dev
-avahi
-avalon-framework
-avfs
-avrdude
-avr-libc
-bamf
-base-files
-base-passwd
-bash
-bash-completion
-bats
-bc
-bcel
-bcloud
-bdfresize
-beautifulsoup4
-bf-utf
-bind9
-binfmt-support
-bino
-bison
-bison27
-blackbird-gtk-theme
-blends
-blinker
-blt
-bluebird-gtk-theme
-bluefish
-bluez
-blur-effect
-bogl
-boost1.58
-boost1.61
-boost1.62
-boost-defaults
-boot-info-script
-botan1.10
-brasero
-bridge-utils
-brltty
-bsd-mailx
-bsdmainutils
-btrfs-progs
-build-essential
-busybox
-byzanz
-bzip2
-ca-certificates
-ca-certificates-java
-cairo
-cairocffi
-cairomm
-caja
-camlbz2
-camlzip
-c-ares
-casablanca
-cdbs
-cdebconf
-cdebootstrap
-cdparanoia
-cdrkit
-cdrom-detect
-ceph
-cgmanager
-chardet
-check
-cheese
-cheetah
-cherrypy3
-chromaprint
-chrpath
-clasp
-cld2
-cloog
-clucene-core
-clutter-1.0
-clutter-gst-3.0
-clutter-gtk
-cmake
-cmdtest
-cmocka
-cm-super
-codeblocks
-gamin
-glewmx
-leveldb
-libdumb
-libs3
-linuxdoc-tools
-neon27
-codelite
-codenarc
-cofoja
-cogl
-colorchooser
-colord
-colorpicker
-colorspacious
-commons-beanutils
-commons-configuration
-commons-csv
-commons-daemon
-commons-exec
-commons-httpclient
-commons-io
-commons-javaflow
-commons-jci
-commons-jcs
-commons-math
-commons-math3
-commons-parent
-commons-pool
-commons-pool2
-commons-vfs
-compress-lzf
-concurrent-dfsg
-configparser
-confuse
-consolekit
-console-setup
-conversant-disruptor
-corebird
-coreutils
-cortado
-cov-core
-cowdancer
-cpio
-cppo
-cppunit
-cpufrequtils
-cracklib2
-crda
-cron
-crossguid
-cryptsetup
-cscope
-cssparser
-csvjdbc
-cups
-cups-filters
-curl
-curvesapi
-cvc3
-cwidget
-cxxtest
-cyrus-sasl2
-cython
-libidn2-0
-gengetopt
-dae
-dash
-datefudge
-db5.3
-db-defaults
-dblatex
-dbus
-dbus-c++
-dbus-factory
-dbus-glib
-dbus-java
-dbus-python
-d-conf
-dconf-editor
-dctrl-tools
-debconf
-debhelper
-debian-archive-keyring
-debian-astro
-debiandoc-sgml
-debian-games
-debianutils
-debootstrap
-debtree
-deja-dup
-dejagnu
-derby
-desktop-base
-desktop-file-utils
-devhelp
-devscripts
-d-feet
-dh-autoreconf
-dh-buildinfo
-dh-di
-dh-exec
-dh-golang
-dh-lisp
-dh-lua
-dh-make
-dh-ocaml
-dh-python
-dictionaries-common
-diffstat
-diffutils
-directfb
-dirgra
-discount
-discover
-disruptor
-distro-info
-distro-info-data
-djvulibre
-dmidecode
-dmraid
-dmz-cursor-theme
-dnprogs
-dnsjava
-dnsmasq
-dnspython
-dns-root-data
-dnssecjava
-docbook
-docbook2x
-docbook5-xml
-docbook-dsssl
-docbook-to-man
-docbook-utils
-docbook-xml
-docbook-xsl
-dokujclient
-dom4j
-dos2unix
-dose3
-dosfstools
-dotconf
-double-conversion
-dovecot
-downthemall
-doxia
-doxia-maven-plugin
-doxia-sitetools
-doxygen
-dpatch
-dpkg
-dpkg-repack
-dput
-dropwizard-metrics
-d-shlibs
-dtd-parser
-dumbster
-duplicity
-dvipng
-dynalang
-e2fsprogs
-eag-healpix
-easybind
-easyconf
-easymock
-ebtables
-ecj failed
-eclipse failed
-eclipse-aether
-eclipselink
-eclipselink-jpa-2.1-spec
-ed
-efibootmgr failed
-efl
-egenix-mx-base
-ehcache
-eigen3
-eigenbase-farrago
-eigenbase-resgen
-eject
-elasticsearch
-elfutils
-elinks
-emacs24
-emacs25
-emacs-defaults
-emacsen-common
-emma-coverage
-enca
-encfs
-enchant
-engrampa
-enum34
-eom
-eperl
-epydoc
-equivs
-erlang failed
-esound
-espeak
-espeak-ng
-espeakup
-etherwake
-ethtool
-evas-loaders
-evince
-excalibur-logger
-excalibur-logkit
-exec-maven-plugin
-exempi
-exim4
-expat
-expect
-explorercanvas
-extlib
-extra-cmake-modules
-exuberant-ctags
-f2j
-faad2
-fakeroot
-faketime
-fam
-famfamfam-flag
-fannj
-farstream-0.2
-fastinfoset
-fastjar
-fcitx
-fcitx-configtool
-fcitx-qt5
-fcitx-sunpinyin
-fdupes
-felix-bundlerepository
-felix-framework
-felix-gogo-command
-felix-gogo-runtime
-felix-gogo-shell
-felix-main
-felix-osgi-obr
-felix-shell
-felix-shell-tui
-felix-utils
-fest-assert
-fest-reflect
-fest-test
-fest-util
-ffmpeg
-ffmpegthumbnailer
-fftw3
-file
-file-roller
-findbugs
-findbugs-bcel
-findlib
-findutils
-finish-install
-fio
-firebird3.0
-firefox failed
-firefox-esr failed
-firewalld
-flac
-flask
-flattr-icon-theme
-flex
-flite
-fltk1.1
-fluidsynth
-flup
-flute
-fontchooser
-fontconfig
-fontforge
-fonts-android
-fonts-arabeyes
-fonts-arphic-ukai
-fonts-arphic-uming
-fonts-cabin
-fonts-cantarell
-fonts-comfortaa
-fonts-crosextra-caladea
-fonts-crosextra-carlito
-fonts-dejavu
-fonts-dejima-mincho
-fonts-ebgaramond
-fonts-farsiweb
-fonts-font-awesome
-fonts-freefont
-fonts-gfs-artemisia
-fonts-gfs-baskerville
-fonts-gfs-complutum
-fonts-gfs-didot
-fonts-gfs-neohellenic
-fonts-gfs-olga
-fonts-gfs-porson
-fonts-gfs-solomos
-fonts-gubbi
-fonts-inconsolata
-fonts-ipafont
-fonts-junicode
-fonts-khmeros
-fonts-lao
-fonts-lato
-fonts-liberation
-fonts-linuxlibertine
-fonts-lklug-sinhala
-fonts-lobstertwo
-fonts-lohit-guru
-fonts-lohit-telu
-fonts-noto
-fonts-noto-cjk
-fonts-oflb-asana-math
-fonts-roboto
-fonts-samyak
-fonts-sil-abyssinica
-fonts-sil-gentium
-fonts-sil-gentium-basic
-fonts-sil-gentiumplus
-fonts-sil-gentiumplus-compact
-fonts-sil-padauk
-fonts-sil-scheherazade
-fonts-smc
-fonts-stix
-fonts-tibetan-machine
-fonts-tlwg
-fonts-ukij-uyghur
-fonts-uralic
-fonts-wqy-microhei
-fonts-wqy-zenhei
-fop
-freeglut
-freehep-chartableconverter-plugin
-freehep-export
-freehep-graphics2d
-freehep-graphicsio
-freehep-graphicsio-emf
-freehep-graphicsio-java
-freehep-graphicsio-pdf
-freehep-graphicsio-ps
-freehep-graphicsio-svg
-freehep-graphicsio-swf
-freehep-graphicsio-tests
-freehep-io
-freehep-swing
-freehep-util
-freehep-xml
-freeimage
-freeplane
-freerdp
-freetds
-freetype
-freexl
-frei0r
-fribidi
-friendly-recovery
-fsplib
-fstrm
-ftgl
-fuse
-policycoreutils
-python-nss" > ${BUILD_LIST}
-	fi
-}
-
 main()
 {
 	# support multi lists
@@ -780,7 +269,7 @@ main()
 	        BUILD_LIST=$1
 	else
 	        BUILD_LIST="/tmp/packs.list"
-	        to_build_list
+	        to_build_list ${BUILD_LIST}
 	fi
 
 	while read -r line; do
