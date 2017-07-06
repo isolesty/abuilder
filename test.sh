@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# TODO: use pbuilder check build depends
+
 # all path in this script shuould be complete path
 INITSCRIPT="initbuild"
 
@@ -24,6 +26,9 @@ RECORD_LIST_FILE="checked_all.list"
 BUILD_TMP_DIR="/tmp/rebuild"
 
 BUILD_LIST=""
+
+# use this to check the build depends
+BACKUP_CHROOT="/var/cache/pbuilder/build/check"
 
 init()
 {
@@ -261,6 +266,23 @@ split_line()
 	fi
 }
 
+# remove all and build pacakges in ${BUILD_LIST}
+# $1 is the ${line}
+remove_passed_package()
+{
+	if [[ -f ${BUILD_LIST} ]]; then
+		echo "delete $1 from ${BUILD_LIST}"
+		sed -i "/^$1$/d" ${BUILD_LIST}
+	fi
+}
+
+
+# check build depends
+# TODO: do this in normal env, not in a chroot environment
+check_build_depends()
+{
+	echo "Pass."
+}
 
 main()
 {
@@ -288,6 +310,8 @@ main()
 		if build_pass ${line}; then
 			# if ${line} is in repo, pass this build
 			echo "${line} had been built."
+			# remove it from ${BUILD_LIST}
+			remove_passed_package ${line}
 			continue
 		fi
 
@@ -296,6 +320,8 @@ main()
 				rebuild ${line}
 			else
 				echo ${line} "is arch independent. Build pass."
+				# remove it from ${BUILD_LIST}
+				remove_passed_package ${line}
 				continue
 			fi
 		fi

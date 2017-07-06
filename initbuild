@@ -37,41 +37,11 @@ create_x86_list()
 }
 
 # $1 is the BUILD_LIST
+# TODO: gammary failed to build depends
 to_build_list()
 {
 	if [[ ! -f $1 ]]; then
-		echo "dogtag-pki failed
-qtwebkit
-minicom
-smpeg
-sdlgfx
-sdl-sound1.2
-hfst-ospell
-uthash
-gavl
-opencv x86
-gvfs x86
-libvoikko
-ruby-ffi
-tcl8.5
-tk8.5
-labltk
-lablgl
-gtkgl2
-gtksourceview2
-lablgtk2
-camlp4
-ounit
-ocaml-re
-ocamlgraph
-cudf
-checkpolicy
-setools
-cunit
-libsepol x86
-libselinux x86
-libsemanage x86
-a52dec
+		echo "a52dec
 aalib
 accountsservice
 acl
@@ -114,6 +84,7 @@ atkmm1.6
 atril
 at-spi2-atk
 at-spi2-core
+attica
 attica-kf5
 attr
 auctex
@@ -151,6 +122,7 @@ bf-utf
 bind9
 binfmt-support
 bino
+binutils
 bison
 bison27
 blackbird-gtk-theme
@@ -185,6 +157,7 @@ cairocffi
 cairomm
 caja
 camlbz2
+camlp4
 camlzip
 c-ares
 casablanca
@@ -198,6 +171,7 @@ ceph
 cgmanager
 chardet
 check
+checkpolicy
 cheese
 cheetah
 cherrypy3
@@ -215,13 +189,6 @@ cmdtest
 cmocka
 cm-super
 codeblocks
-gamin
-glewmx
-leveldb
-libdumb
-libs3
-linuxdoc-tools
-neon27
 codelite
 codenarc
 cofoja
@@ -270,17 +237,19 @@ cryptsetup
 cscope
 cssparser
 csvjdbc
+cudf
+cunit
 cups
 cups-filters
 curl
 curvesapi
 cvc3
+cvs
+cvsps
 cwidget
 cxxtest
 cyrus-sasl2
 cython
-libidn2-0
-gengetopt
 dae
 dash
 datefudge
@@ -351,6 +320,7 @@ docbook-to-man
 docbook-utils
 docbook-xml
 docbook-xsl
+dogtag-pki failed
 dokujclient
 dom4j
 dos2unix
@@ -382,8 +352,8 @@ easyconf
 easymock
 ebtables
 ecj failed
-eclipse failed
 eclipse-aether
+eclipse failed
 eclipselink
 eclipselink-jpa-2.1-spec
 ed
@@ -473,8 +443,8 @@ findutils
 finish-install
 fio
 firebird3.0
-firefox failed
 firefox-esr failed
+firefox failed
 firewalld
 flac
 flask
@@ -574,14 +544,13 @@ fsplib
 fstrm
 ftgl
 fuse
-policycoreutils
-python-nss
 galculator
 gambas3
 game-music-emu
-gammaray
+gamin
 ganymed-ssh2
 gaupol
+gavl
 gawk
 gcab
 gconf
@@ -596,6 +565,7 @@ gdl
 gedit
 gem2deb
 genext2fs
+gengetopt
 genshi
 gentlyweb-utils
 geoclue
@@ -636,17 +606,17 @@ glade
 glassfish
 glee
 glew
+glewmx
 glfw3
 glib2.0
 glibmm2.4
 glib-networking
 glm
-gluegen2
+gluegen2 failed
 gmetric4j
 gmetrics
-gmime
 gmp
-gnash
+gnash failed
 gnome-autoar
 gnome-calculator
 gnome-common
@@ -724,6 +694,7 @@ gpodder
 gradle
 gradle-jflex-plugin
 granite
+grantlee
 graphite2
 graphviz
 graxxia
@@ -757,9 +728,11 @@ gtk2-engines
 gtk2-engines-murrine
 gtk+3.0
 gtk-doc
+gtkgl2
 gtkglext
 gtkmm2.4
 gtkmm3.0
+gtksourceview2
 gtksourceview3
 gtkspell
 gtkspell3
@@ -796,6 +769,7 @@ help2man
 hessian
 hevea
 hexchat
+hfst-ospell
 hicolor-icon-theme
 highlight
 hikaricp
@@ -1053,6 +1027,7 @@ json-simple
 json-smart
 jsoup
 jsr107cache
+jss
 jssc
 jtharness
 jtidy
@@ -1066,6 +1041,46 @@ jvyamlb
 jxgrabkey
 jxrlib
 jzlib
-jzmq" > $1
+jzmq
+kde4libs
+lablgl
+lablgtk2
+labltk
+leveldb
+libdumb
+libidn2-0
+libiodbc2
+libs3
+libselinux
+libsemanage
+libsepol
+libsigc++-2.0
+libtext-markdown-discount-perl
+libtrio
+libvoikko
+linuxdoc-tools
+minicom
+mono failed
+neon27
+nuxwdog
+ocamlgraph
+ocaml-re
+opencv
+ounit
+policycoreutils
+python-nss
+qtconnectivity-opensource-src
+qtwebkit
+ruby-ffi
+sdlgfx
+sdl-sound1.2
+setools
+smpeg
+soprano
+svrcore
+tcl8.5
+tk8.5
+uthash
+vtk6 failed" > $1
 	fi
 }
