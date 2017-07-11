@@ -5,8 +5,8 @@
 # all path in this script shuould be complete path
 INITSCRIPT="initbuild"
 
-# TODO: use tmpfs to build
-#BUILD_PLACE="/dev/shm/build-"
+BUILD_PLACE="/dev/shm/rebuild"
+BUILD_IN_MEMORY=0
 
 BASE_TGZ="/var/cache/pbuilder/rebuild.tgz"
 
@@ -89,7 +89,7 @@ get_source_x86()
 
 	sudo apt -oDir::Etc::SourceList=${X86_LIST} update 
 	apt -oDir::Etc::SourceList=${X86_LIST} source $1
-	sudo apt update
+
 }
 
 prepare_source()
@@ -101,6 +101,7 @@ prepare_source()
 	if [[ ${X86_SWITCH} -eq 1 ]]; then
 		get_source_x86 $1
 	else
+		sudo apt update
 		apt source $1
 		
 		dsc_file=$(ls ./ | grep 'dsc')
@@ -159,7 +160,23 @@ prepare_build()
 run_pbuilder()
 {
 	echo "Use pbuilder to build $1"
-	sudo pbuilder --build --basetgz ${BASE_TGZ} --buildresult ${RESULT_DIR} --hookdir /var/cache/pbuilder/hooks/ --logfile ${RESULT_DIR}/buildlog --debbuildopts -sa $1/$1*.dsc
+
+	# check the free memory
+	free_memory=$(free | grep Mem | awk '{print $4}')
+	# enable build in memory if free memory more than 10G
+	# TODO: enable this
+	if [[ ${free_memory} -gt 10000000 ]]; then
+		BUILD_IN_MEMORY=0
+		sudo mkdir -p ${BUILD_PLACE}
+	fi
+
+	# 
+	if [[ ${BUILD_IN_MEMORY} -eq 1 ]]; then
+		# use shm to build 
+		sudo pbuilder --build --basetgz ${BASE_TGZ} --buildplace ${BUILD_PLACE} --buildresult ${RESULT_DIR} --hookdir /var/cache/pbuilder/hooks/ --logfile ${RESULT_DIR}/buildlog --debbuildopts -sa $1/$1*.dsc
+	else
+		sudo pbuilder --build --basetgz ${BASE_TGZ} --buildresult ${RESULT_DIR} --hookdir /var/cache/pbuilder/hooks/ --logfile ${RESULT_DIR}/buildlog --debbuildopts -sa $1/$1*.dsc
+	fi
 
 	if [[ $? -ne 0 ]]; then
 		# failed to build
@@ -177,8 +194,6 @@ clean_build()
 	rm -rf ${BUILD_TMP_DIR}/$1
 	# reset RESULT_DIR
 	RESULT_DIR="/home/deepin/pbuilder-results"
-	# reset X86_SWITCH
-	X86_SWITCH=0
 }
 
 reprepro_include()
@@ -295,6 +310,11 @@ main()
 	fi
 
 	while read -r line; do
+		# reset X86_SWITCH
+		X86_SWITCH=0
+		# reset BUILD_IN_MEMORY
+		BUILD_IN_MEMORY=0
+
 		# special format in $line, split it to normal package name
 		# split_line example: split_line aaa x86
 		split_line $line
