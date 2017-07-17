@@ -42,8 +42,17 @@ to_build_list()
 {
 	if [[ ! -f $1 ]]; then
 		echo "a52dec
+<<<<<<< HEAD
+<<<<<<< HEAD
+corosync
+libdbi
+rrdtool
 metacity
 libnftnl
+=======
+>>>>>>> parent of f0f9fdd... Add support for source build
+=======
+>>>>>>> parent of f0f9fdd... Add support for source build
 aalib
 accountsservice
 acl
@@ -1083,6 +1092,8 @@ svrcore
 tcl8.5
 tk8.5
 uthash
+<<<<<<< HEAD
+<<<<<<< HEAD
 vtk6 failed
 kactivities-kf5
 karchive
@@ -1170,12 +1181,6 @@ lightdm-gtk-greeter
 lilv
 links2
 lintian
-linux
-linux-4.4.32-1-loongson-3
-linux-atm
-linux-base
-linux-latest
-linux-upstream
 lirc
 live-boot
 live-config
@@ -1287,5 +1292,11 @@ libburn
 libbusiness-isbn-data-perl
 libbusiness-isbn-perl
 libbytelist-java" > $1
+=======
+vtk6 failed" > $1
+>>>>>>> parent of f0f9fdd... Add support for source build
+=======
+vtk6 failed" > $1
+>>>>>>> parent of f0f9fdd... Add support for source build
 	fi
 }

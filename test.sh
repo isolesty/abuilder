@@ -15,12 +15,6 @@ X86_LIST="/tmp/x86.list"
 X86_SWITCH=0
 # build failed flag, ignore this package
 FAILED_FLAG=0
-# name is a package name, not a source name
-# example: kdoctools is a source name, and is a pakcages name from kde4libs too
-# manual prepare the build source
-# TODO: ohter flag to build this
-SOURCE_FLAG=0
-GET_SOURCE_NAME=''
 
 RESULT_DIR="/home/deepin/pbuilder-results"
 RESULT_BACKUP_DIR="/home/deepin/pbuilder-results-backup"
@@ -100,32 +94,21 @@ get_source_x86()
 
 prepare_source()
 {
-	SOURCE_NAME=''
-	# not set GET_SOURCE_NAME
-	# GET_SOURCE_NAME must be reset every ${line}
-	# so if it is not null, it should be set for this package name
-	if [[ x${GET_SOURCE_NAME} == 'x' ]]; then
-		#statements
-		SOURCE_NAME=$1
-	else
-		SOURCE_NAME=${GET_SOURCE_NAME}
-	fi
-
 	echo "get source: $1"
 	mkdir -p $1 && cd $1
 
 	# get source from x86 directly
 	if [[ ${X86_SWITCH} -eq 1 ]]; then
-		get_source_x86 ${SOURCE_NAME}
+		get_source_x86 $1
 	else
 		sudo apt update
-		apt source ${SOURCE_NAME}
+		apt source $1
 		
 		dsc_file=$(ls ./ | grep 'dsc')
 		if [[ x${dsc_file} == "x" ]]; then
 			# failed to get package source from arch repos
 			# try x86 repo
-			get_source_x86 ${SOURCE_NAME}
+			get_source_x86 $1
 		fi
 	fi
 
@@ -136,6 +119,17 @@ prepare_source()
 	if [[ x${dsc_file} == "x" ]]; then
 		# failed to get source from x86 too
 		return 1
+	else
+		# check the dsc name
+		dsc_name=$(cat ${dsc_file} | awk -F'_' '{print $1}')
+		# ${line} in ${BUILD_LIST} is a source name
+		if [[ x${dsc_name} == x${SOURCE_NAME} ]]; then
+			#statements
+			echo "Get source: ${dsc_name}"
+		else
+			# ${line} in ${BUILD_LIST} is a package name
+			SOURCE_NAME=${dsc_name}
+		fi
 	fi
 
 	# get source successfully
@@ -295,10 +289,6 @@ split_line()
 		X86_SWITCH=1
 	elif [[ x$2 == "xfailed" ]]; then
 		FAILED_FLAG=1
-	elif [[ x$2 == "xsource" ]]; then
-		SOURCE_FLAG=1
-		# set get source name, used in apt source
-		GET_SOURCE_NAME=$3
 	fi
 }
 
@@ -335,9 +325,6 @@ main()
 		X86_SWITCH=0
 		# reset BUILD_IN_MEMORY
 		BUILD_IN_MEMORY=0
-		# reset SOURCE_FLAG
-		SOURCE_FLAG=0
-		GET_SOURCE_NAME=''
 
 		# special format in $line, split it to normal package name
 		# split_line example: split_line aaa x86
