@@ -2,6 +2,8 @@
 
 # TODO: use pbuilder check build depends
 
+### return 1 for build, return 0 for build pass
+
 BUILD_PLACE="/dev/shm/rebuild"
 BUILD_IN_MEMORY=0
 
@@ -15,6 +17,10 @@ FAILED_FLAG=0
 
 # enable pacakges' name build
 SOURCE_NAME=''
+# enable version update build
+SOURCE_VERSION=''
+REPO_VERSION=''
+VERSION_CHECK=0
 
 RESULT_DIR="$HOME/pbuilder-results"
 RESULT_BACKUP_DIR="$HOME/pbuilder-results-backup"
@@ -115,6 +121,9 @@ prepare_source()
 		sudo apt update
 		apt source ${SOURCE_NAME}
 		
+		# TODO: document this special method for the special source code
+		# sometimes, prepare a special source before the script runs
+		# so don't check the $(apt source)'s return code 
 		dsc_file=$(ls ./ | grep 'dsc')
 		if [[ x${dsc_file} == "x" ]]; then
 			# failed to get package source from arch repos
@@ -125,7 +134,7 @@ prepare_source()
 
 	dsc_file=$(ls ./ | grep 'dsc')
 	# cd back to ${BUILD_TMP_DIR}
-	cd - > /dev/null
+	cd ${BUILD_TMP_DIR} > /dev/null
 
 	if [[ x${dsc_file} == "x" ]]; then
 		# failed to get source from x86 too
@@ -152,8 +161,6 @@ prepare_source()
 		fi
 	fi
 
-	# get source successfully
-	update_version ${SOURCE_NAME}
 	return 0
 
 }
@@ -176,7 +183,38 @@ update_version()
 	rm ../*.dsc
 	# create new dsc
 	dpkg-source -b .
-	cd - > /dev/null
+	cd ${BUILD_TMP_DIR} > /dev/null
+
+}
+
+compare_version()
+{
+	# compare the version
+	# ${SOURCE_NAME} should be set correctly
+	if [[ ${VERSION_CHECK} -eq 1 ]]; then
+		SOURCE_VERSION=$(echo ${dsc_file} | awk -F'_' '{print $2}' | sed 's/.dsc//')
+		# use the repo dir to get the right version
+		# example: /home/deepin/rebuild-repos/pool/main/d/dde/dde_15.4+10deepin1.dsc
+		REPO_VERSION=$( find ${REPOS}/ -type f -name "$1*.dsc" | awk -F'/' '{print $NF}' | grep ^$1 | grep $1_ | awk -F'_' '{print $2}' | sed 's/.dsc//')
+		# source version in repos should be xxxdeepin*
+		REPO_VERSION=${REPO_VERSION%%deepin*}
+
+		# use command dpkg to compare the version
+		dpkg --compare-versions ${SOURCE_VERSION} gt ${REPO_VERSION}
+		if [[ $? -eq 0 ]]; then
+			# ${SOURCE_VERSION} is greater than ${REPO_VERSION}, shoule build it
+			echo "${SOURCE_VERSION} is a update build"
+			return 0
+		else
+			# pass this build
+			echo "Same version to build, pass"
+			remove_passed_package ${SOURCE_NAME}
+			return 1
+		fi
+	else
+		# no ${VERSION_CHECK} set, build it anyway
+		return 0
+	fi
 
 }
 
@@ -197,27 +235,34 @@ run_pbuilder()
 	# enable build in memory if free memory more than 10G
 	# TODO: enable this
 	if [[ ${free_memory} -gt 10000000 ]]; then
-		BUILD_IN_MEMORY=0
-		sudo mkdir -p ${BUILD_PLACE}
+		BUILD_IN_MEMORY=1
+		BUILD_PLACE="${HOME}/build-tmpdir/chroot-autobuild-tmpfs"
+		mkdir -p ${HOME}/build-tmpdir/chroot-autobuild
+
+		sudo mkdir -p /dev/shm/build-shm
+		sudo mkdir -p /dev/shm/build-work
+
+		mkdir -p ${BUILD_PLACE}
+
+		sudo mount -t overlay overlay -o lowerdir=${HOME}/build-tmpdir/chroot-autobuild,upperdir=/dev/shm/build-shm,workdir=/dev/shm/build-work ${BUILD_PLACE}
+
 	fi
 
-	# 
+	# build log
+	build_log=${RESULT_DIR}/buildlog
 	if [[ ${BUILD_IN_MEMORY} -eq 1 ]]; then
 		# use shm to build 
-		sudo pbuilder --build --use-network yes --basetgz ${BASE_TGZ} --buildplace ${BUILD_PLACE} --buildresult ${RESULT_DIR} --hookdir /var/cache/pbuilder/hooks/ --logfile ${RESULT_DIR}/buildlog --debbuildopts -sa $1/$1*.dsc
+		sudo pbuilder --build --use-network yes --basetgz ${BASE_TGZ} --buildplace ${BUILD_PLACE} --buildresult ${RESULT_DIR} --hookdir /var/cache/pbuilder/hooks/ --logfile ${build_log} --debbuildopts -sa $1/$1*.dsc
 	else
-		sudo pbuilder --build --use-network yes --basetgz ${BASE_TGZ} --buildresult ${RESULT_DIR} --hookdir /var/cache/pbuilder/hooks/ --logfile ${RESULT_DIR}/buildlog --debbuildopts -sa $1/$1*.dsc
+		sudo pbuilder --build --use-network yes --basetgz ${BASE_TGZ} --buildresult ${RESULT_DIR} --hookdir /var/cache/pbuilder/hooks/ --logfile ${build_log} --debbuildopts -sa $1/$1*.dsc
 	fi
 
 	if [[ $? -ne 0 ]]; then
 		# failed to build
 		echo "Failed to build $1."
-		
-		iter_build_depends
-
-		# after the function iter_build_depends, ${SOURCE_NAME} should be built
-		# this clean_build may be failed
 		clean_build $1
+		
+		iter_build_depends ${build_log}
 
 		# now, if build failed in pbuilder, run the C10shell in pbuilder
 		# TODO: if the depends is a arch independent, the script will run in a loop
@@ -227,7 +272,7 @@ run_pbuilder()
 
 iter_build_depends()
 {
-	build_error_log=${RESULT_DIR}/buildlog
+	build_error_log=$1
 	# generate new BUILD_LIST
 	TMP_BUILD_LIST="/tmp/tmpbuild-$(date +%s)"
 	# examples:
@@ -264,6 +309,23 @@ clean_build()
 	
 	# reset RESULT_DIR
 	RESULT_DIR="$HOME/pbuilder-results"
+
+	# clean build place
+	if [[ ${BUILD_IN_MEMORY} -eq 1 ]]; then
+		while grep -q "${HOME}/build-tmpdir/chroot-autobuild-tmpfs" /proc/mounts;do
+			    sudo umount -l "${HOME}/build-tmpdir/chroot-autobuild-tmpfs" || true
+			    sleep 1
+		done
+
+		if [ -d "${HOME}/build-tmpdir/chroot-autobuild-tmpfs" ];then
+			   sudo rm -rf /dev/shm/build-shm
+			   sudo rm -rf /dev/shm/build-work
+		fi
+		if [[ -d ${HOME}/build-tmpdir ]]; then
+			sudo rm -rf ${HOME}/build-tmpdir
+		fi
+	fi
+
 }
 
 reprepro_include()
@@ -276,7 +338,8 @@ reprepro_include()
 		reprepro -S utils -P optional includedsc unstable ${RESULT_DIR}/*.dsc
 	fi
 	reprepro includedeb unstable ${RESULT_DIR}/*.deb
-	cd - > /dev/null
+
+	cd ${BUILD_TMP_DIR} > /dev/null
 }
 
 backup_result()
@@ -292,9 +355,14 @@ backup_result()
 rebuild()
 {
 	prepare_build $1
-	run_pbuilder $1
-	reprepro_include $1
-	backup_result $1
+
+	if compare_version $1 ; then
+		update_version $1
+		run_pbuilder $1
+		reprepro_include $1
+		backup_result $1
+	fi
+	
 }
 
 check_all()
@@ -324,8 +392,9 @@ build_pass()
 
 	if [[ ${search_source} == $1 || ${search_pack} == $1 ]]; then
 		# package had been built 
-		# return 0 to pass this build
-		return 0
+		# compare the repos version and the build version
+		VERSION_CHECK=1
+		return 1
 	else
 		# check the record file of tested all packages
 		pack_all=$(cat ${REPOS}/${RECORD_LIST_FILE} | grep -w $1 | grep $1$ | grep ^$1 )
@@ -393,6 +462,8 @@ main()
 		X86_SWITCH=0
 		# reset BUILD_IN_MEMORY
 		BUILD_IN_MEMORY=0
+		# reset check version
+		VERSION_CHECK=0
 
 		# special format in $line, split it to normal package name
 		# set the ${SOURCE_NAME}
