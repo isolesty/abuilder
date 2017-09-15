@@ -17,10 +17,14 @@ FAILED_FLAG=0
 
 # enable pacakges' name build
 SOURCE_NAME=''
+PACKAGE_NAME=''
 # enable version update build
 SOURCE_VERSION=''
 REPO_VERSION=''
 VERSION_CHECK=0
+
+# build all packages
+NO_SKIP_ALL=1
 
 RESULT_DIR="$HOME/pbuilder-results"
 RESULT_BACKUP_DIR="$HOME/pbuilder-results-backup"
@@ -157,6 +161,8 @@ prepare_source()
 			fi
 			mv -v ${SOURCE_NAME} ${dsc_name}
 			
+			# backup the SOURCE_NAME and set it to the dsc file's name
+			PACKAGE_NAME=${SOURCE_NAME}
 			SOURCE_NAME=${dsc_name}
 		fi
 	fi
@@ -196,8 +202,8 @@ compare_version()
 		# use the repo dir to get the right version
 		# example: /home/deepin/rebuild-repos/pool/main/d/dde/dde_15.4+10deepin1.dsc
 		REPO_VERSION=$( find ${REPOS}/ -type f -name "$1*.dsc" | awk -F'/' '{print $NF}' | grep ^$1 | grep $1_ | awk -F'_' '{print $2}' | sed 's/.dsc//')
-		# source version in repos should be xxxdeepin*
-		REPO_VERSION=${REPO_VERSION%%deepin*}
+		# source version in repos should be xxxdeepin*, ignore the deepin*
+		# REPO_VERSION=${REPO_VERSION%%deepin*}
 
 		# use command dpkg to compare the version
 		dpkg --compare-versions ${SOURCE_VERSION} gt ${REPO_VERSION}
@@ -207,7 +213,7 @@ compare_version()
 			return 0
 		else
 			# pass this build
-			echo "Same version to build, pass"
+			echo "Same version in repos, pass this build"
 			remove_passed_package ${SOURCE_NAME}
 			return 1
 		fi
@@ -338,6 +344,7 @@ reprepro_include()
 		reprepro -S utils -P optional includedsc unstable ${RESULT_DIR}/*.dsc
 	fi
 	reprepro includedeb unstable ${RESULT_DIR}/*.deb
+	reprepro includeudeb unstable ${RESULT_DIR}/*.udeb
 
 	cd ${BUILD_TMP_DIR} > /dev/null
 }
@@ -367,6 +374,12 @@ rebuild()
 
 check_all()
 {
+	# if NO_SKIP_ALL is set, build all pacakges
+	if [[ ${NO_SKIP_ALL} -eq 1 ]]; then
+		# return code 0 to build the ${SOURCE_NAME}
+		return 0
+	fi
+
 	# example:
 	# Architecture: any all
 	pack_arch=$(cat $1/$1*.dsc | grep 'Architecture:' | awk -F': ' '{print $2}')
@@ -396,14 +409,19 @@ build_pass()
 		VERSION_CHECK=1
 		return 1
 	else
-		# check the record file of tested all packages
-		pack_all=$(cat ${REPOS}/${RECORD_LIST_FILE} | grep -w $1 | grep $1$ | grep ^$1 )
-		if [[ ${pack_all} == $1 ]]; then
-			# return 0 to pass this build
-			return 0
-		fi
-
-		return 1
+		# if NO_SKIP_ALL is set, build all pacakges
+		if [[ ${NO_SKIP_ALL} -eq 1 ]]; then
+			# return code 1 to build the ${SOURCE_NAME}
+			return 1
+		else
+			# check the record file of tested all packages
+			pack_all=$(cat ${REPOS}/${RECORD_LIST_FILE} | grep -w $1 | grep $1$ | grep ^$1 )
+			if [[ ${pack_all} == $1 ]]; then
+				# return 0 to pass this build
+				return 0
+			fi
+			return 1
+		fi		
 	fi
 }
 
@@ -411,8 +429,9 @@ build_pass()
 # usage example: split_line aaa x86
 split_line()
 {
-	# $1 must be a package name
+	# $1 must be a package name or a source name
 	SOURCE_NAME=$1
+	PACKAGE_NAME=$1
 	# $2 is a flag
 	if [[ x$2 == "xx86" ]]; then
 		X86_SWITCH=1
@@ -426,12 +445,13 @@ split_line()
 }
 
 # remove all and build pacakges in ${BUILD_LIST}
-# $1 is the ${line}
+# always remove PACKAGE_NAME, not the SOURCE_NAME
 remove_passed_package()
 {
+
 	if [[ -f ${BUILD_LIST} ]]; then
-		echo "delete $1 from ${BUILD_LIST}"
-		sed -i "/^$1$/d" ${BUILD_LIST}
+		echo "delete ${PACKAGE_NAME} from ${BUILD_LIST}"
+		sed -i "/^${PACKAGE_NAME}$/d" ${BUILD_LIST}
 	fi
 }
 
