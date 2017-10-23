@@ -76,7 +76,7 @@ apr
 apr-util
 apt
 apt-file
-aptitude
+aptitude failed
 arduino
 argyll
 asciidoc
@@ -95,7 +95,7 @@ attr
 auctex
 audacious
 audiofile
-audit
+audit failed
 autoconf
 autoconf2.13
 autoconf2.59
@@ -158,7 +158,7 @@ bzip2
 ca-certificates
 ca-certificates-java
 cairo
-cairocffi
+cairocffi failed
 cairomm
 caja
 camlbz2
@@ -177,7 +177,7 @@ cgmanager
 chardet
 check
 checkpolicy
-cheese
+cheese failed
 cheetah
 cherrypy3
 chromaprint
@@ -213,7 +213,7 @@ commons-javaflow
 commons-jci
 commons-jcs
 commons-math
-commons-math3
+commons-math3 failed
 commons-parent
 commons-pool
 commons-pool2
@@ -281,7 +281,7 @@ debootstrap
 debtree
 deja-dup
 dejagnu
-derby
+derby failed
 desktop-base
 desktop-file-utils
 devhelp
@@ -352,14 +352,14 @@ dvipng
 dynalang
 e2fsprogs
 eag-healpix
-easybind
+easybind failed
 easyconf
 easymock
 ebtables
 ecj failed
 eclipse-aether
 eclipse failed
-eclipselink
+eclipselink failed
 eclipselink-jpa-2.1-spec
 ed
 efibootmgr failed
@@ -370,7 +370,7 @@ eigen3
 eigenbase-farrago
 eigenbase-resgen
 eject
-elasticsearch
+elasticsearch failed
 elfutils
 elinks
 emacs24
@@ -519,7 +519,7 @@ fonts-ukij-uyghur
 fonts-uralic
 fonts-wqy-microhei
 fonts-wqy-zenhei
-fop
+fop failed
 freeglut
 freehep-chartableconverter-plugin
 freehep-export
@@ -537,7 +537,7 @@ freehep-swing
 freehep-util
 freehep-xml
 freeimage
-freeplane
+freeplane failed
 freerdp
 freetds
 freetype
